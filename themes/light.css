@@ -1,0 +1,30 @@
+:root {
+  --app-bg: #ffffff;
+  --app-fg: #24292e;
+  --header-bg: #f6f8fa;
+  --border-color: #e1e4e8;
+  --logo-color: #0366d6;
+  --button-bg: #f6f8fa;
+  --button-fg: #24292e;
+  --button-hover-bg: #e1e4e8;
+  --editor-bg: #ffffff;
+  --editor-fg: #24292e;
+  --editor-caret: #24292e;
+  --line-num-bg: #f6f8fa;
+  --line-num-fg: #6a737d;
+  --placeholder-fg: #959da5;
+
+  --md-heading: #005cc5;
+  --md-bold: #e36209;
+  --md-italic: #6f42c1;
+  --md-link: #0366d6;
+  --md-url: #28a745;
+  --md-code: #d73a49;
+  --md-code-bg: #f6f8fa;
+  --md-code-block: #24292e;
+  --md-fence: #6a737d;
+  --md-quote: #22863a;
+  --md-list: #6a737d;
+  --md-hr: #6a737d;
+  --md-image: #b08800;
+}

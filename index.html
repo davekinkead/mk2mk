@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mk2mk - Markdown Syntax Highlighter</title>
+  <link rel="stylesheet" href="themes/dark.css" id="theme-stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--app-bg, #1e1e1e);
+      color: var(--app-fg, #d4d4d4);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--header-bg, #252526);
+      border-bottom: 1px solid var(--border-color, #3c3c3c);
+    }
+
+    .logo {
+      font-weight: 600;
+      font-size: 18px;
+      color: var(--logo-color, #569cd6);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    select, button {
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 16px;
+      border: 1px solid var(--border-color, #3c3c3c);
+      border-radius: 4px;
+      background: var(--button-bg, #3c3c3c);
+      color: var(--button-fg, #d4d4d4);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    select:hover, button:hover {
+      background: var(--button-hover-bg, #4a4a4a);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .editor-container {
+      flex: 1;
+      display: flex;
+      margin: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--editor-bg, #1e1e1e);
+      border: 1px solid var(--border-color, #3c3c3c);
+    }
+
+    .line-numbers {
+      padding: 16px 12px;
+      text-align: right;
+      font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Segoe UI Mono', Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      background: var(--line-num-bg, #252526);
+      color: var(--line-num-fg, #858585);
+      user-select: none;
+      min-width: 50px;
+      overflow: hidden;
+    }
+
+    .editor-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .highlight-layer,
+    .input-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      min-height: 100%;
+      padding: 16px;
+      font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Segoe UI Mono', Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .highlight-layer {
+      pointer-events: none;
+      color: var(--editor-fg, #d4d4d4);
+      margin: 0;
+    }
+
+    .input-layer {
+      color: transparent;
+      background: transparent;
+      caret-color: var(--editor-caret, #fff);
+      border: none;
+      outline: none;
+      resize: none;
+      overflow: hidden;
+    }
+
+    .input-layer:focus {
+      outline: none;
+    }
+
+    .input-layer:empty::before {
+      content: attr(data-placeholder);
+      color: var(--placeholder-fg, #6a6a6a);
+      pointer-events: none;
+    }
+
+    .md-heading { color: var(--md-heading, #569cd6); font-weight: bold; }
+    .md-bold { color: var(--md-bold, #dcdcaa); }
+    .md-italic { color: var(--md-italic, #c586c0); font-style: italic; }
+    .md-link { color: var(--md-link, #ce9178); }
+    .md-url { color: var(--md-url, #6a9955); }
+    .md-code { color: var(--md-code, #ce9178); background: var(--md-code-bg, #2d2d2d); padding: 2px 4px; border-radius: 3px; }
+    .md-code-block { color: var(--md-code-block, #ce9178); }
+    .md-fence { color: var(--md-fence, #808080); }
+    .md-quote { color: var(--md-quote, #6a9955); font-style: italic; }
+    .md-list { color: var(--md-list, #808080); }
+    .md-hr { color: var(--md-hr, #808080); }
+    .md-image { color: var(--md-image, #d19a66); }
+
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+      header {
+        display: none;
+      }
+      .editor-container {
+        margin: 0;
+        border: none;
+        border-radius: 0;
+      }
+      .line-numbers {
+        display: var(--print-line-numbers, none);
+      }
+      .highlight-layer {
+        position: static;
+      }
+      .input-layer {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">mk2mk</div>
+    <div class="controls">
+      <select id="theme-selector">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+      </select>
+      <button id="export-btn">Export PDF</button>
+    </div>
+  </header>
+
+  <div class="editor-container">
+    <div class="line-numbers" id="line-numbers">1</div>
+    <div class="editor-wrapper">
+      <div class="highlight-layer" id="highlight-layer"></div>
+      <div 
+        class="input-layer" 
+        id="input-layer" 
+        contenteditable="true" 
+        spellcheck="false"
+        data-placeholder="Type or paste markdown here..."
+      ></div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+      
+    const inputLayer = document.getElementById('input-layer');
+    const highlightLayer = document.getElementById('highlight-layer');
+    const lineNumbers = document.getElementById('line-numbers');
+    const themeSelector = document.getElementById('theme-selector');
+    const themeStylesheet = document.getElementById('theme-stylesheet');
+    const exportBtn = document.getElementById('export-btn');
+
+    const themes = ['dark', 'light'];
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function tokenize(markdown) {
+      let html = escapeHtml(markdown);
+      const placeholders = [];
+      
+      const savePlaceholder = (content, className) => {
+        const index = placeholders.length;
+        placeholders.push({ content, className });
+        return `\x00PH${index}\x00`;
+      };
+
+      html = html.replace(/^```[\s\S]*?^```/gm, (match) => {
+        const lines = match.split('\n');
+        const fenceStart = `<span class="md-fence">${lines[0]}</span>`;
+        const fenceEnd = lines[lines.length - 1] === '```' 
+          ? `<span class="md-fence">\`\`\`</span>` 
+          : '';
+        const content = lines.slice(1, -1).join('\n');
+        return fenceStart + '\n' + `<span class="md-code-block">${escapeHtml(content)}</span>` + (fenceEnd ? '\n' + fenceEnd : '');
+      });
+
+      html = html.replace(/`([^`]+)`/g, '<span class="md-code">`$1`</span>');
+
+      html = html.replace(/^(#{1,6})\s(.*)$/gm, (match, hashes, text) => {
+        return `<span class="md-heading">${hashes}</span> <span class="md-heading">${text}</span>`;
+      });
+
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">**$1**</span>');
+      html = html.replace(/__([^_]+)__/g, '<span class="md-bold">__$1__</span>');
+
+      html = html.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<span class="md-italic">*$2*</span>');
+      html = html.replace(/(^|[^_])_([^_]+)_(?!_)/g, '$1<span class="md-italic">_$2_</span>');
+
+      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+        return `<span class="md-image">![${alt}]</span><span class="md-url">(${url})</span>`;
+      });
+
+      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+        return `<span class="md-link">[${text}]</span><span class="md-url">(${url})</span>`;
+      });
+
+      html = html.replace(/^&gt;\s(.*)$/gm, (match, text) => {
+        return `<span class="md-quote">&gt;</span> <span class="md-quote">${text}</span>`;
+      });
+
+      html = html.replace(/^(\s*[-*+])\s/gm, '<span class="md-list">$1</span> ');
+      html = html.replace(/^(\s*\d+\.)\s/gm, '<span class="md-list">$1</span> ');
+
+      html = html.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<span class="md-hr">$1</span>');
+
+      return html;
+    }
+
+    function updateHighlight() {
+      const text = inputLayer.innerText;
+      const tokenized = tokenize(text);
+      highlightLayer.innerHTML = tokenized;
+      updateLineNumbers(text);
+    }
+
+    function updateLineNumbers(text) {
+      let lineCount = 0;
+      
+      if (inputLayer.childNodes.length === 0) {
+        lineNumbers.innerHTML = '1';
+        return;
+      }
+      
+      inputLayer.childNodes.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const t = node.textContent;
+          if (t) {
+            lineCount += (t.match(/\n/g) || []).length + 1;
+          }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.tagName === 'BR') {
+            lineCount++;
+          } else if (node.tagName === 'DIV') {
+            lineCount++;
+          }
+        }
+      });
+      
+      lineCount = Math.max(1, lineCount);
+      
+      let html = '';
+      for (let i = 1; i <= lineCount; i++) {
+        html += i + '<br>';
+      }
+      lineNumbers.innerHTML = html;
+    }
+
+    function syncScroll() {
+      lineNumbers.scrollTop = inputLayer.scrollTop;
+    }
+
+    inputLayer.addEventListener('input', updateHighlight);
+    inputLayer.addEventListener('scroll', syncScroll);
+
+    inputLayer.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        document.execCommand('insertText', false, '  ');
+      }
+    });
+
+    inputLayer.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
+
+    function loadTheme(themeName) {
+      themeStylesheet.href = `themes/${themeName}.css`;
+      themeSelector.value = themeName;
+      localStorage.setItem('mk2mk-theme', themeName);
+    }
+
+    themeSelector.addEventListener('change', (e) => {
+      loadTheme(e.target.value);
+    });
+
+    const savedTheme = localStorage.getItem('mk2mk-theme');
+    if (savedTheme && themes.includes(savedTheme)) {
+      loadTheme(savedTheme);
+    }
+
+    function exportPDF() {
+      const content = inputLayer.innerText;
+      const highlighted = tokenize(content);
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '800px';
+      iframe.style.height = '1000px';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentDocument;
+      const styles = '<sty' + 'le>' +
+        'body{margin:0;padding:40px;background:#fff;font-family:ui-monospace,SF Mono,Consolas,monospace;font-size:12pt;line-height:1.6}' +
+        'div.content{white-space:pre-wrap;word-wrap:break-word}' +
+        '.md-heading{color:#2b6cb0;font-weight:bold}' +
+        '.md-bold{color:#975a16}' +
+        '.md-italic{color:#805ad5;font-style:italic}' +
+        '.md-link{color:#c53030}' +
+        '.md-url{color:#276749}' +
+        '.md-code{color:#c53030;background:#f7fafc;padding:2px 4px;border-radius:3px}' +
+        '.md-code-block{color:#c53030}' +
+        '.md-fence{color:#718096}' +
+        '.md-quote{color:#276749;font-style:italic}' +
+        '.md-list{color:#718096}' +
+        '.md-hr{color:#718096}' +
+        '.md-image{color:#9c4221}' +
+        '@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}@page{size:A4;margin:2cm}}' +
+        '<\/sty' + 'le>';
+      
+      doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>mk2mk Export</title>' + styles + '</he' + 'ad><body><div class="content">' + highlighted + '</div></bo' + 'dy></ht' + 'ml>');
+      doc.close();
+
+      setTimeout(function() {
+        iframe.contentWindow.print();
+        setTimeout(function() {
+          document.body.removeChild(iframe);
+        }, 100);
+      }, 250);
+    }
+
+    exportBtn.addEventListener('click', exportPDF);
+
+    updateHighlight();
+    inputLayer.focus();
+    
+    })();
+  </script>
+</body>
+</html>

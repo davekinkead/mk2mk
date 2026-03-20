@@ -1,0 +1,30 @@
+:root {
+  --app-bg: #1e1e1e;
+  --app-fg: #d4d4d4;
+  --header-bg: #252526;
+  --border-color: #3c3c3c;
+  --logo-color: #569cd6;
+  --button-bg: #3c3c3c;
+  --button-fg: #d4d4d4;
+  --button-hover-bg: #4a4a4a;
+  --editor-bg: #1e1e1e;
+  --editor-fg: #d4d4d4;
+  --editor-caret: #fff;
+  --line-num-bg: #252526;
+  --line-num-fg: #858585;
+  --placeholder-fg: #6a6a6a;
+
+  --md-heading: #569cd6;
+  --md-bold: #dcdcaa;
+  --md-italic: #c586c0;
+  --md-link: #ce9178;
+  --md-url: #6a9955;
+  --md-code: #ce9178;
+  --md-code-bg: #2d2d2d;
+  --md-code-block: #d4d4d4;
+  --md-fence: #808080;
+  --md-quote: #6a9955;
+  --md-list: #808080;
+  --md-hr: #808080;
+  --md-image: #d19a66;
+}

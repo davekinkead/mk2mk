@@ -2,8 +2,6 @@
 
 A lightweight, browser-based markdown syntax highlighter. Write markdown with live syntax highlighting and export to PDF.
 
-**~10KB total. No dependencies.**
-
 ## Features
 
 - Live syntax highlighting as you type

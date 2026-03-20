@@ -13,7 +13,7 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--app-bg, #1e1e1e);
       color: var(--app-fg, #d4d4d4);
       min-height: 100vh;
@@ -51,86 +51,64 @@
       background: var(--button-bg, #3c3c3c);
       color: var(--button-fg, #d4d4d4);
       cursor: pointer;
-      transition: background 0.2s;
     }
 
     select:hover, button:hover {
       background: var(--button-hover-bg, #4a4a4a);
     }
 
-    button:active {
-      transform: scale(0.98);
-    }
-
-    .editor-container {
+    .container {
       flex: 1;
       display: flex;
+      gap: 1px;
+      background: var(--border-color, #3c3c3c);
       margin: 20px;
       border-radius: 8px;
       overflow: hidden;
-      background: var(--editor-bg, #1e1e1e);
-      border: 1px solid var(--border-color, #3c3c3c);
     }
 
-    .line-numbers {
-      padding: 16px 12px;
-      text-align: right;
-      font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Segoe UI Mono', Consolas, monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      background: var(--line-num-bg, #252526);
-      color: var(--line-num-fg, #858585);
-      user-select: none;
-      min-width: 50px;
-      overflow: hidden;
-    }
-
-    .editor-wrapper {
+    .panel {
       flex: 1;
-      position: relative;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      background: var(--editor-bg, #1e1e1e);
     }
 
-    .highlight-layer,
-    .input-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      min-height: 100%;
+    .panel-header {
+      padding: 8px 16px;
+      background: var(--header-bg, #252526);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--line-num-fg, #858585);
+    }
+
+    .input-area {
+      flex: 1;
       padding: 16px;
-      font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Segoe UI Mono', Consolas, monospace;
+      font-family: ui-monospace, 'SF Mono', Consolas, monospace;
       font-size: 14px;
       line-height: 1.6;
+      background: transparent;
+      color: var(--editor-fg, #d4d4d4);
+      border: none;
+      resize: none;
+      outline: none;
+    }
+
+    .input-area::placeholder {
+      color: var(--placeholder-fg, #6a6a6a);
+    }
+
+    .preview-area {
+      flex: 1;
+      padding: 16px;
+      font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow: auto;
       white-space: pre-wrap;
       word-wrap: break-word;
-      overflow-wrap: break-word;
-    }
-
-    .highlight-layer {
-      pointer-events: none;
-      color: var(--editor-fg, #d4d4d4);
-      margin: 0;
-    }
-
-    .input-layer {
-      color: transparent;
-      background: transparent;
-      caret-color: var(--editor-caret, #fff);
-      border: none;
-      outline: none;
-      resize: none;
-      overflow: hidden;
-    }
-
-    .input-layer:focus {
-      outline: none;
-    }
-
-    .input-layer:empty::before {
-      content: attr(data-placeholder);
-      color: var(--placeholder-fg, #6a6a6a);
-      pointer-events: none;
     }
 
     .md-heading { color: var(--md-heading, #569cd6); font-weight: bold; }
@@ -145,30 +123,6 @@
     .md-list { color: var(--md-list, #808080); }
     .md-hr { color: var(--md-hr, #808080); }
     .md-image { color: var(--md-image, #d19a66); }
-
-    @media print {
-      body {
-        background: white;
-        color: black;
-      }
-      header {
-        display: none;
-      }
-      .editor-container {
-        margin: 0;
-        border: none;
-        border-radius: 0;
-      }
-      .line-numbers {
-        display: var(--print-line-numbers, none);
-      }
-      .highlight-layer {
-        position: static;
-      }
-      .input-layer {
-        display: none;
-      }
-    }
   </style>
 </head>
 <body>
@@ -183,17 +137,19 @@
     </div>
   </header>
 
-  <div class="editor-container">
-    <div class="line-numbers" id="line-numbers">1</div>
-    <div class="editor-wrapper">
-      <div class="highlight-layer" id="highlight-layer"></div>
-      <div 
-        class="input-layer" 
-        id="input-layer" 
-        contenteditable="true" 
+  <div class="container">
+    <div class="panel">
+      <div class="panel-header">Markdown</div>
+      <textarea 
+        class="input-area" 
+        id="input-area" 
+        placeholder="Type or paste markdown here..."
         spellcheck="false"
-        data-placeholder="Type or paste markdown here..."
-      ></div>
+      ></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Preview</div>
+      <div class="preview-area" id="preview-area"></div>
     </div>
   </div>
 
@@ -201,193 +157,139 @@
     (function() {
       'use strict';
       
-    const inputLayer = document.getElementById('input-layer');
-    const highlightLayer = document.getElementById('highlight-layer');
-    const lineNumbers = document.getElementById('line-numbers');
-    const themeSelector = document.getElementById('theme-selector');
-    const themeStylesheet = document.getElementById('theme-stylesheet');
-    const exportBtn = document.getElementById('export-btn');
+      const inputArea = document.getElementById('input-area');
+      const previewArea = document.getElementById('preview-area');
+      const themeSelector = document.getElementById('theme-selector');
+      const themeStylesheet = document.getElementById('theme-stylesheet');
+      const exportBtn = document.getElementById('export-btn');
 
-    const themes = ['dark', 'light'];
+      const themes = ['dark', 'light'];
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    function tokenize(markdown) {
-      let html = escapeHtml(markdown);
-      const placeholders = [];
-      
-      const savePlaceholder = (content, className) => {
-        const index = placeholders.length;
-        placeholders.push({ content, className });
-        return `\x00PH${index}\x00`;
-      };
-
-      html = html.replace(/^```[\s\S]*?^```/gm, (match) => {
-        const lines = match.split('\n');
-        const fenceStart = `<span class="md-fence">${lines[0]}</span>`;
-        const fenceEnd = lines[lines.length - 1] === '```' 
-          ? `<span class="md-fence">\`\`\`</span>` 
-          : '';
-        const content = lines.slice(1, -1).join('\n');
-        return fenceStart + '\n' + `<span class="md-code-block">${escapeHtml(content)}</span>` + (fenceEnd ? '\n' + fenceEnd : '');
-      });
-
-      html = html.replace(/`([^`]+)`/g, '<span class="md-code">`$1`</span>');
-
-      html = html.replace(/^(#{1,6})\s(.*)$/gm, (match, hashes, text) => {
-        return `<span class="md-heading">${hashes}</span> <span class="md-heading">${text}</span>`;
-      });
-
-      html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">**$1**</span>');
-      html = html.replace(/__([^_]+)__/g, '<span class="md-bold">__$1__</span>');
-
-      html = html.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<span class="md-italic">*$2*</span>');
-      html = html.replace(/(^|[^_])_([^_]+)_(?!_)/g, '$1<span class="md-italic">_$2_</span>');
-
-      html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
-        return `<span class="md-image">![${alt}]</span><span class="md-url">(${url})</span>`;
-      });
-
-      html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
-        return `<span class="md-link">[${text}]</span><span class="md-url">(${url})</span>`;
-      });
-
-      html = html.replace(/^&gt;\s(.*)$/gm, (match, text) => {
-        return `<span class="md-quote">&gt;</span> <span class="md-quote">${text}</span>`;
-      });
-
-      html = html.replace(/^(\s*[-*+])\s/gm, '<span class="md-list">$1</span> ');
-      html = html.replace(/^(\s*\d+\.)\s/gm, '<span class="md-list">$1</span> ');
-
-      html = html.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<span class="md-hr">$1</span>');
-
-      return html;
-    }
-
-    function updateHighlight() {
-      const text = inputLayer.innerText;
-      const tokenized = tokenize(text);
-      highlightLayer.innerHTML = tokenized;
-      updateLineNumbers(text);
-    }
-
-    function updateLineNumbers(text) {
-      let lineCount = 0;
-      
-      if (inputLayer.childNodes.length === 0) {
-        lineNumbers.innerHTML = '1';
-        return;
+      function escapeHtml(text) {
+        return text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
       }
-      
-      inputLayer.childNodes.forEach(node => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const t = node.textContent;
-          if (t) {
-            lineCount += (t.match(/\n/g) || []).length + 1;
-          }
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          if (node.tagName === 'BR') {
-            lineCount++;
-          } else if (node.tagName === 'DIV') {
-            lineCount++;
-          }
-        }
-      });
-      
-      lineCount = Math.max(1, lineCount);
-      
-      let html = '';
-      for (let i = 1; i <= lineCount; i++) {
-        html += i + '<br>';
+
+      function tokenize(markdown) {
+        let html = escapeHtml(markdown);
+
+        // Code blocks
+        html = html.replace(/^```[\s\S]*?^```/gm, function(match) {
+          const lines = match.split('\n');
+          const fenceStart = '<span class="md-fence">' + lines[0] + '</span>';
+          const fenceEnd = lines[lines.length - 1] === '```' 
+            ? '<span class="md-fence">```</span>' 
+            : '';
+          const content = lines.slice(1, -1).join('\n');
+          return fenceStart + '\n' + '<span class="md-code-block">' + escapeHtml(content) + '</span>' + (fenceEnd ? '\n' + fenceEnd : '');
+        });
+
+        // Inline code
+        html = html.replace(/`([^`]+)`/g, '<span class="md-code">`$1`</span>');
+
+        // Headings
+        html = html.replace(/^(#{1,6})\s(.*)$/gm, '<span class="md-heading">$1</span> <span class="md-heading">$2</span>');
+
+        // Bold
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<span class="md-bold">**$1**</span>');
+        html = html.replace(/__([^_]+)__/g, '<span class="md-bold">__$1__</span>');
+
+        // Italic
+        html = html.replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<span class="md-italic">*$2*</span>');
+        html = html.replace(/(^|[^_])_([^_]+)_(?!_)/g, '$1<span class="md-italic">_$2_</span>');
+
+        // Images
+        html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<span class="md-image">![$1]</span><span class="md-url">($2)</span>');
+
+        // Links
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<span class="md-link">[$1]</span><span class="md-url">($2)</span>');
+
+        // Blockquotes
+        html = html.replace(/^&gt;\s(.*)$/gm, '<span class="md-quote">&gt;</span> <span class="md-quote">$1</span>');
+
+        // Lists
+        html = html.replace(/^(\s*[-*+])\s/gm, '<span class="md-list">$1</span> ');
+        html = html.replace(/^(\s*\d+\.)\s/gm, '<span class="md-list">$1</span> ');
+
+        // Horizontal rules
+        html = html.replace(/^(-{3,}|\*{3,}|_{3,})$/gm, '<span class="md-hr">$1</span>');
+
+        return html;
       }
-      lineNumbers.innerHTML = html;
-    }
 
-    function syncScroll() {
-      lineNumbers.scrollTop = inputLayer.scrollTop;
-    }
-
-    inputLayer.addEventListener('input', updateHighlight);
-    inputLayer.addEventListener('scroll', syncScroll);
-
-    inputLayer.addEventListener('keydown', (e) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        document.execCommand('insertText', false, '  ');
+      function updatePreview() {
+        const text = inputArea.value;
+        previewArea.innerHTML = tokenize(text);
       }
-    });
 
-    inputLayer.addEventListener('paste', (e) => {
-      e.preventDefault();
-      const text = e.clipboardData.getData('text/plain');
-      document.execCommand('insertText', false, text);
-    });
+      function loadTheme(themeName) {
+        themeStylesheet.href = 'themes/' + themeName + '.css';
+        themeSelector.value = themeName;
+        try {
+          localStorage.setItem('mk2mk-theme', themeName);
+        } catch(e) {}
+      }
 
-    function loadTheme(themeName) {
-      themeStylesheet.href = `themes/${themeName}.css`;
-      themeSelector.value = themeName;
-      localStorage.setItem('mk2mk-theme', themeName);
-    }
+      function exportPDF() {
+        const content = inputArea.value;
+        const highlighted = tokenize(content);
 
-    themeSelector.addEventListener('change', (e) => {
-      loadTheme(e.target.value);
-    });
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.left = '-9999px';
+        iframe.style.width = '800px';
+        iframe.style.height = '1000px';
+        document.body.appendChild(iframe);
 
-    const savedTheme = localStorage.getItem('mk2mk-theme');
-    if (savedTheme && themes.includes(savedTheme)) {
-      loadTheme(savedTheme);
-    }
+        const doc = iframe.contentDocument;
+        const styles = '<sty' + 'le>' +
+          'body{margin:0;padding:40px;background:#fff;font-family:ui-monospace,SF Mono,Consolas,monospace;font-size:12pt;line-height:1.6}' +
+          'div.content{white-space:pre-wrap;word-wrap:break-word}' +
+          '.md-heading{color:#2b6cb0;font-weight:bold}' +
+          '.md-bold{color:#975a16}' +
+          '.md-italic{color:#805ad5;font-style:italic}' +
+          '.md-link{color:#c53030}' +
+          '.md-url{color:#276749}' +
+          '.md-code{color:#c53030;background:#f7fafc;padding:2px 4px;border-radius:3px}' +
+          '.md-code-block{color:#c53030}' +
+          '.md-fence{color:#718096}' +
+          '.md-quote{color:#276749;font-style:italic}' +
+          '.md-list{color:#718096}' +
+          '.md-hr{color:#718096}' +
+          '.md-image{color:#9c4221}' +
+          '@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}@page{size:A4;margin:1cm}}' +
+          '<\/sty' + 'le>';
+        
+        doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>mk2mk Export</title>' + styles + '</he' + 'ad><body><div class="content">' + highlighted + '</div></bo' + 'dy></ht' + 'ml>');
+        doc.close();
 
-    function exportPDF() {
-      const content = inputLayer.innerText;
-      const highlighted = tokenize(content);
-
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'absolute';
-      iframe.style.left = '-9999px';
-      iframe.style.width = '800px';
-      iframe.style.height = '1000px';
-      document.body.appendChild(iframe);
-
-      const doc = iframe.contentDocument;
-      const styles = '<sty' + 'le>' +
-        'body{margin:0;padding:40px;background:#fff;font-family:ui-monospace,SF Mono,Consolas,monospace;font-size:12pt;line-height:1.6}' +
-        'div.content{white-space:pre-wrap;word-wrap:break-word}' +
-        '.md-heading{color:#2b6cb0;font-weight:bold}' +
-        '.md-bold{color:#975a16}' +
-        '.md-italic{color:#805ad5;font-style:italic}' +
-        '.md-link{color:#c53030}' +
-        '.md-url{color:#276749}' +
-        '.md-code{color:#c53030;background:#f7fafc;padding:2px 4px;border-radius:3px}' +
-        '.md-code-block{color:#c53030}' +
-        '.md-fence{color:#718096}' +
-        '.md-quote{color:#276749;font-style:italic}' +
-        '.md-list{color:#718096}' +
-        '.md-hr{color:#718096}' +
-        '.md-image{color:#9c4221}' +
-        '@media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}@page{size:A4;margin:2cm}}' +
-        '<\/sty' + 'le>';
-      
-      doc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>mk2mk Export</title>' + styles + '</he' + 'ad><body><div class="content">' + highlighted + '</div></bo' + 'dy></ht' + 'ml>');
-      doc.close();
-
-      setTimeout(function() {
-        iframe.contentWindow.print();
         setTimeout(function() {
-          document.body.removeChild(iframe);
-        }, 100);
-      }, 250);
-    }
+          iframe.contentWindow.print();
+          setTimeout(function() {
+            document.body.removeChild(iframe);
+          }, 100);
+        }, 250);
+      }
 
-    exportBtn.addEventListener('click', exportPDF);
+      inputArea.addEventListener('input', updatePreview);
+      themeSelector.addEventListener('change', function(e) {
+        loadTheme(e.target.value);
+      });
+      exportBtn.addEventListener('click', exportPDF);
 
-    updateHighlight();
-    inputLayer.focus();
-    
+      // Load saved theme
+      try {
+        const savedTheme = localStorage.getItem('mk2mk-theme');
+        if (savedTheme && themes.indexOf(savedTheme) !== -1) {
+          loadTheme(savedTheme);
+        }
+      } catch(e) {}
+
+      // Initial render
+      updatePreview();
     })();
   </script>
 </body>

@@ -1,28 +1,13 @@
 # mk2mk
 
-A lightweight, browser-based markdown syntax highlighter. Write markdown with live syntax highlighting and export to PDF.
-
-## Features
-
-- Live syntax highlighting as you type
-- Custom regex tokenizer (no external libraries)
-- Two themes included (dark, light)
-- Browser print export to PDF
-- Line numbers
-- Soft word wrap
-- Auto-growing editor
-- Theme persistence via localStorage
+A simple way to render markdown as PDF without installing local tooling.
 
 ## Usage
 
-1. Open `index.html` in a browser
+1. Visit [https://davekinkead.github.io/mk2mk/](https://davekinkead.github.io/mk2mk/)
 2. Type or paste markdown
 3. Select a theme from the dropdown
 4. Click "Export PDF" to print/save as PDF
-
-## Keyboard Shortcuts
-
-- `Tab` - Insert 2 spaces
 
 ## Supported Markdown Syntax
 
